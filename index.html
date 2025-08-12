@@ -1,0 +1,1190 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Mind Map - Supertype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        :root {
+            --background: 240 10% 3.9%;
+            --foreground: 0 0% 98%;
+            --card: 240 10% 3.9%;
+            --card-foreground: 0 0% 98%;
+            --popover: 240 10% 3.9%;
+            --popover-foreground: 0 0% 98%;
+            --primary: 0 0% 98%;
+            --primary-foreground: 240 5.9% 10%;
+            --secondary: 240 3.7% 15.9%;
+            --secondary-foreground: 0 0% 98%;
+            --muted: 240 3.7% 15.9%;
+            --muted-foreground: 240 5% 64.9%;
+            --accent: 240 3.7% 15.9%;
+            --accent-foreground: 0 0% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 0 0% 98%;
+            --border: 240 3.7% 15.9%;
+            --input: 240 3.7% 15.9%;
+            --ring: 240 4.9% 83.9%;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+            background-image: radial-gradient(circle, rgba(255, 255, 255, 0.2) 1.5px, transparent 1.5px);
+            background-size: 30px 30px;
+            background-position: 0 0;
+            color: hsl(var(--foreground));
+            overflow: hidden; /* Prevent body scroll */
+        }
+        .mindmap-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+        .mindmap-container:active {
+            cursor: grabbing;
+        }
+        #mindmap-content {
+            position: absolute;
+            transform-origin: 0 0;
+            transition: none; /* Disable smooth transitions that cause jumping */
+        }
+        .node {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border: 1px solid hsl(var(--border));
+            background-color: hsl(var(--card));
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            transform: translate(-50%, -50%); /* Center node on its coordinates */
+        }
+        .node:hover {
+            border-color: hsl(var(--ring));
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        .node .indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 9999px;
+            margin-right: 0.5rem;
+            transition: transform 0.3s ease;
+        }
+        .node .service-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 0.5rem;
+            opacity: 0.8;
+        }
+        .node.expandable.collapsed .indicator {
+            transform: rotate(-90deg);
+        }
+        .node.center-node {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 1.125rem;
+            padding: 1.5rem 2rem;
+            z-index: 10;
+            flex-direction: column;
+            text-align: center;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.3), 0 8px 16px -8px rgba(0, 0, 0, 0.2), 0 0 20px #8b6636;
+            min-width: 300px;
+            white-space: normal;
+        }
+        .node.center-node img {
+            max-height: 80px;
+            width: auto;
+            display: block;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+        .node.center-node .tagline {
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0.9;
+            max-width: 280px;
+            line-height: 1.3;
+            margin-top: 0.5rem;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .client-logos {
+            margin-top: 1rem;
+            width: 280px;
+            overflow: hidden;
+            position: relative;
+        }
+        .logo-carousel {
+            display: flex;
+            animation: scroll 30s linear infinite;
+            width: calc(150px * 22); /* 11 logos * 2 for seamless loop */
+        }
+        .logo-carousel img {
+            width: 120px;
+            height: 40px;
+            object-fit: contain;
+            margin-right: 30px;
+            opacity: 0.7;
+            filter: brightness(0) invert(1); /* Make logos white */
+            transition: opacity 0.3s ease;
+        }
+        .logo-carousel img:hover {
+            opacity: 1;
+        }
+        @keyframes scroll {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(calc(-150px * 11)); /* Move by 11 logo widths */
+            }
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 2rem;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: background 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-image {
+            max-width: 90vw;
+            max-height: 80vh;
+            width: auto;
+            height: auto;
+            border-radius: 0.5rem;
+            object-fit: contain;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-title {
+            color: white;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .node.main-node {
+            background-color: hsl(var(--secondary));
+            font-weight: 500;
+        }
+        .node.sub-node {
+            font-size: 0.875rem;
+            padding: 0.375rem 0.75rem;
+            max-width: 280px;
+            white-space: normal;
+            line-height: 1.3;
+        }
+        .node.detail-node {
+            background-color: hsl(var(--muted));
+            color: hsl(var(--foreground));
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            max-width: 350px;
+            white-space: normal;
+            line-height: 1.4;
+        }
+        .node-title {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 1);
+        }
+        #mindmap-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            pointer-events: none;
+            overflow: visible; /* Important */
+        }
+        #mindmap-svg .line {
+            stroke: rgba(255, 255, 255, 0.2); /* More dimmed white */
+            stroke-width: 2;
+            fill: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="mindmap-container" class="mindmap-container">
+        <div id="mindmap-content">
+            <svg id="mindmap-svg"></svg>
+        </div>
+    </div>
+
+    <!-- Client Logos Modal -->
+    <div id="clientModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeClientModal()">&times;</span>
+            <h2 class="modal-title">Our Enterprise Clients</h2>
+            <img src="image2.png" alt="Enterprise Clients" class="modal-image">
+        </div>
+    </div>
+
+    <!-- Water Level Forecasting Modal -->
+    <div id="waterLevelModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeWaterLevelModal()">&times;</span>
+            <h2 class="modal-title">Water Level Forecasting - Barito River 3D Simulation</h2>
+            <iframe id="waterLevelFrame" 
+                    style="width: 90vw; height: 80vh; border: none; border-radius: 0.5rem;"
+                    title="Barito River 3D Simulation">
+            </iframe>
+        </div>
+    </div>
+
+    <!-- Adaro Case Study Modal -->
+    <div id="adaroModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeAdaroModal()">&times;</span>
+            <h2 class="modal-title">Predictive Maintenance - Adaro</h2>
+            <img src="adaro.png" alt="Adaro Predictive Maintenance Case Study" class="modal-image">
+        </div>
+    </div>
+
+    <!-- IDX Reports Modal -->
+    <div id="idxReportsModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeIdxReportsModal()">&times;</span>
+            <h2 class="modal-title">Automated Reports - IDX</h2>
+            <embed src="ds_250811.pdf" type="application/pdf" 
+                   style="width: 90vw; height: 80vh; border: none; border-radius: 0.5rem;">
+        </div>
+    </div>
+
+    <!-- Sectors Financial Modal -->
+    <div id="sectorsFinancialModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeSectorsFinancialModal()">&times;</span>
+            <h2 class="modal-title">Sectors Financial</h2>
+            <iframe src="https://sectors.app/" 
+                    style="width: 90vw; height: 80vh; border: none; border-radius: 0.5rem;"
+                    title="Sectors Financial">
+            </iframe>
+        </div>
+    </div>
+
+    <!-- Sectors Insiders Modal -->
+    <div id="sectorsInsidersModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeSectorsInsidersModal()">&times;</span>
+            <h2 class="modal-title">Sectors Insiders</h2>
+            <iframe src="https://insider.sectors.app/" 
+                    style="width: 90vw; height: 80vh; border: none; border-radius: 0.5rem;"
+                    title="Sectors Insiders">
+            </iframe>
+        </div>
+    </div>
+
+    <!-- Bank Indonesia Modal -->
+    <div id="bankIndonesiaModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeBankIndonesiaModal()">&times;</span>
+            <h2 class="modal-title">Sentiment Analysis - Bank Indonesia</h2>
+            <img src="bankindonesia.png" alt="Bank Indonesia Sentiment Analysis" class="modal-image">
+        </div>
+    </div>
+
+    <!-- BPK RI Modal -->
+    <div id="bpkRiModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeBpkRiModal()">&times;</span>
+            <h2 class="modal-title">Enhancing State Financial Oversight - BPK RI</h2>
+            <img src="bpkri.png" alt="BPK RI State Financial Oversight" class="modal-image">
+        </div>
+    </div>
+
+    <!-- OSINT Government Modal -->
+    <div id="osintGovernmentModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeOsintGovernmentModal()">&times;</span>
+            <h2 class="modal-title">OSINT Listening Tools - Government</h2>
+            <iframe src="https://periwatch.com/" 
+                    style="width: 90vw; height: 80vh; border: none; border-radius: 0.5rem;"
+                    title="PeriWatch - OSINT Listening Tools">
+            </iframe>
+        </div>
+    </div>
+
+
+
+    <script>
+        const mindmapData = {
+            id: 'center', text: 'Supertype: AI & RPA Solutions', isRoot: true,
+            children: [
+                { id: 'about', text: 'About Us', collapsed: true, children: [
+                        { id: 'about-1', text: '8+ years of experience' }, { id: 'about-2', text: 'Specializes in AI, Data Science, RPA' }, { id: 'about-3', text: '500+ Enterprise Clients' },
+                    ]
+                },
+                { id: 'services', text: 'Core Services', collapsed: true, children: [
+                        { id: 'services-1', text: 'AI & Analytics Consulting' },
+                        { id: 'services-2', text: 'AI Implementation' },
+                        { id: 'services-3', text: 'AI & Analytics Training' }
+                    ]
+                },
+                { id: 'success', text: 'Success Stories', collapsed: true, children: [
+                        { id: 'success-2', text: 'Water Level Forecasting (Adaro)' },
+                        { id: 'success-3', text: 'Predictive Maintenance (Adaro)' },
+                        { id: 'success-4', text: 'Automated Reports (IDX)' },
+                        { id: 'success-5', text: 'Sentiment Analysis (Bank Indonesia)' },
+                        { id: 'success-6', text: 'Enhancing State Financial Oversight (BPK RI)' },
+                        { id: 'success-7', text: 'OSINT Listening Tools (Government)' }
+                    ]
+                },
+                { id: 'inhouse', text: 'In-House Project', collapsed: true, children: [
+                        { id: 'sectors-financial', text: 'Sectors Financial' },
+                        { id: 'sectors-insiders', text: 'Sectors Insiders' }
+                    ]
+                },
+                { id: 'innovation', text: 'Powering Industry Innovation', collapsed: true, children: [
+                        { id: 'challenge', text: 'The Challenge', collapsed: true, children: [
+                                { id: 'challenge-1', text: 'Limited Bandwidth: Your best people are often fully committed to core business operations, leaving little bandwidth for new, specialized AI projects.' },
+                                { id: 'challenge-2', text: 'Specialized Skill Gaps: AI is a rapidly evolving field. It\'s difficult to maintain in-house expertise across every new technology, from LLMs to predictive analytics.' },
+                                { id: 'challenge-3', text: 'Accelerating Time-to-Value: The pace of business demands faster results, but complex AI projects require focused effort and dedicated resources to move from concept to production quickly.' },
+                                { id: 'challenge-4', text: 'Innovation Without the Overhead: Avoid the financial risk and long-term commitment of new hires. Our model allows you to pursue high-impact AI projects while tying costs directly to performance and results.' }
+                            ]
+                        },
+                        { id: 'partner', text: 'Strategic AI Partner', collapsed: true, children: [
+                                { id: 'partner-1', text: 'Success-Oriented Partnership: We align our success with your specific project goals. Whether it\'s achieving a clear ROI, launching a new capability, or upskilling your team, we are focused on delivering successful, measurable outcomes.' },
+                                { id: 'partner-2', text: 'Instant Expertise: We seamlessly integrate with your existing teams, providing world-class AI specialists to fill skill gaps and accelerate your development cycle from day one.' },
+                                { id: 'partner-3', text: 'Achieve More with Your Budget: By partnering with us, you gain access to an entire AI team for a fraction of the cost and time it would take to build from scratch, making your existing budget go further.' }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+
+        const container = document.getElementById('mindmap-container');
+        const content = document.getElementById('mindmap-content');
+        const svg = document.getElementById('mindmap-svg');
+
+
+        let scale = 1;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let startX, startY;
+        let isInitialRender = true;
+
+
+        function updateTransform() {
+            content.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+            // Force immediate style application
+            content.offsetHeight;
+        }
+
+
+        container.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.node')) return;
+            isPanning = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+            container.style.cursor = 'grabbing';
+        });
+
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateTransform();
+        });
+
+
+        container.addEventListener('mouseup', () => {
+            isPanning = false;
+            container.style.cursor = 'grab';
+        });
+
+
+        container.addEventListener('mouseleave', () => {
+            isPanning = false;
+            container.style.cursor = 'grab';
+        });
+
+
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomIntensity = 0.1;
+            const delta = e.deltaY > 0 ? -1 : 1;
+            const newScale = Math.max(0.2, Math.min(3, scale + delta * zoomIntensity));
+            
+            const rect = container.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+
+            panX = mouseX - (mouseX - panX) * (newScale / scale);
+            panY = mouseY - (mouseY - panY) * (newScale / scale);
+            
+            scale = newScale;
+            updateTransform();
+        });
+
+
+        function findNodeById(node, id) {
+            if (node.id === id) return node;
+            if (node.children) {
+                for (const child of node.children) {
+                    const found = findNodeById(child, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+
+        // Modern stable mindmap implementation
+        class MindMap {
+            constructor() {
+                this.nodes = new Map();
+                this.lines = new Map();
+                this.canvasSize = { width: 0, height: 0, offsetX: 0, offsetY: 0 };
+                this.initialized = false;
+            }
+
+            init() {
+                if (this.initialized) return;
+                
+                // Calculate stable canvas size for all possible node states
+                this.calculateStableCanvasSize();
+                
+                // Render all nodes once with permanent positions
+                this.renderAllNodes();
+                
+                // Set up event delegation
+                this.setupEventDelegation();
+                
+                // Initial positioning
+                this.centerViewport();
+                
+                // Initialize Lucide icons
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+                
+                this.initialized = true;
+            }
+
+            calculateStableCanvasSize() {
+                const positions = new Map();
+                const bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+                
+                // Calculate positions for ALL nodes (expanded state)
+                this.calculateNodePositions(mindmapData, 0, 0, 0, 2 * Math.PI, 0, positions, true);
+                
+                // Calculate bounds based on actual positions after collision resolution
+                positions.forEach(pos => {
+                    bounds.minX = Math.min(bounds.minX, pos.x - 200); // Standard buffer
+                    bounds.maxX = Math.max(bounds.maxX, pos.x + 200);
+                    bounds.minY = Math.min(bounds.minY, pos.y - 60); // Standard buffer
+                    bounds.maxY = Math.max(bounds.maxY, pos.y + 60);
+                });
+
+                const padding = 200;
+                this.canvasSize.width = bounds.maxX - bounds.minX + padding * 2;
+                this.canvasSize.height = bounds.maxY - bounds.minY + padding * 2;
+                this.canvasSize.offsetX = -bounds.minX + padding;
+                this.canvasSize.offsetY = -bounds.minY + padding;
+
+                // Set canvas size once
+                content.style.width = `${this.canvasSize.width}px`;
+                content.style.height = `${this.canvasSize.height}px`;
+                svg.setAttribute('width', this.canvasSize.width);
+                svg.setAttribute('height', this.canvasSize.height);
+            }
+
+            calculateNodePositions(nodeData, parentX, parentY, startAngle, totalAngle, level, positions, forceExpanded = false) {
+                positions.set(nodeData.id, { 
+                    x: parentX, 
+                    y: parentY, 
+                    level: level,
+                    nodeData: nodeData 
+                });
+
+                if (nodeData.children && (forceExpanded || !nodeData.collapsed)) {
+                    const children = nodeData.children;
+                    const childCount = children.length;
+                    const angleStep = totalAngle / childCount;
+                    // Simple, clean radius calculation with minimum distances
+            const baseRadius = level === 1 ? 450 : 200; // Ensure main nodes start far enough from center
+            const radius = baseRadius + level * 120;
+
+                    children.forEach((child, index) => {
+                        const angle = startAngle + (index - (childCount - 1) / 2) * angleStep;
+                        const x = parentX + radius * Math.cos(angle);
+                        const y = parentY + radius * Math.sin(angle);
+                        
+                        // Standard angle spread - collision detection handles overlap prevention
+                        const subAngleSpread = angleStep * 0.8;
+                        this.calculateNodePositions(child, x, y, angle, subAngleSpread, level + 1, positions, forceExpanded);
+                    });
+                }
+            }
+
+            // Collision detection and resolution system
+            resolveCollisions(positions) {
+                const iterations = 5; // Number of collision resolution passes
+                
+                for (let iter = 0; iter < iterations; iter++) {
+                    let hasCollisions = false;
+                    const posArray = Array.from(positions.values());
+                    
+                    for (let i = 0; i < posArray.length; i++) {
+                        for (let j = i + 1; j < posArray.length; j++) {
+                            const nodeA = posArray[i];
+                            const nodeB = posArray[j];
+                            
+                            // Skip if nodes are parent-child (should stay connected), but allow center node collision detection
+                            if (this.isParentChild(nodeA, nodeB) && !this.involvesCenterNode(nodeA, nodeB)) continue;
+                            
+                            const collision = this.detectCollision(nodeA, nodeB);
+                            if (collision) {
+                                hasCollisions = true;
+                                this.resolveCollision(nodeA, nodeB, collision);
+                            }
+                        }
+                    }
+                    
+                    // If no collisions found, we're done
+                    if (!hasCollisions) break;
+                }
+            }
+
+            isParentChild(nodeA, nodeB) {
+                // Check if nodes are directly connected (parent-child relationship)
+                return this.findParentId(nodeA.nodeData.id) === nodeB.nodeData.id ||
+                       this.findParentId(nodeB.nodeData.id) === nodeA.nodeData.id;
+            }
+
+            involvesCenterNode(nodeA, nodeB) {
+                return nodeA.level === 0 || nodeB.level === 0;
+            }
+
+            detectCollision(nodeA, nodeB) {
+                const isCenterNode = (node) => node.level === 0;
+                const isMainNode = (node) => node.level === 1;
+                
+                // Use distance-based collision detection for center node
+                if (isCenterNode(nodeA) || isCenterNode(nodeB)) {
+                    const centerNode = isCenterNode(nodeA) ? nodeA : nodeB;
+                    const otherNode = isCenterNode(nodeA) ? nodeB : nodeA;
+                    
+                    const dx = otherNode.x - centerNode.x;
+                    const dy = otherNode.y - centerNode.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Minimum distance based on node type
+                    const minDistance = isMainNode(otherNode) ? 450 : 300;
+                    
+                    if (distance < minDistance) {
+                        return {
+                            distance: distance,
+                            minDistance: minDistance,
+                            shortfall: minDistance - distance,
+                            centerNode: centerNode,
+                            otherNode: otherNode
+                        };
+                    }
+                    
+                    return null;
+                }
+                
+                // Use rectangular collision detection for non-center nodes
+                const getNodeDimensions = (node) => {
+                    const textLength = node.nodeData.text.length;
+                    const isLongText = textLength > 100;
+                    
+                    if (node.level === 0) return { width: 350, height: 120 }; // Center node
+                    if (node.level === 1) return { width: 200, height: 50 };  // Main nodes
+                    if (node.level === 2) return { width: 180, height: 40 };  // Sub nodes
+                    
+                    // Detail nodes - adjust based on text length
+                    const width = isLongText ? 380 : 200;
+                    const height = isLongText ? Math.ceil(textLength / 60) * 25 + 20 : 30;
+                    return { width, height };
+                };
+
+                const dimA = getNodeDimensions(nodeA);
+                const dimB = getNodeDimensions(nodeB);
+                
+                const dx = Math.abs(nodeA.x - nodeB.x);
+                const dy = Math.abs(nodeA.y - nodeB.y);
+                
+                const minDx = (dimA.width + dimB.width) / 2 + 20; // 20px buffer
+                const minDy = (dimA.height + dimB.height) / 2 + 20; // 20px buffer
+                
+                if (dx < minDx && dy < minDy) {
+                    return {
+                        overlapX: minDx - dx,
+                        overlapY: minDy - dy,
+                        dimA, dimB
+                    };
+                }
+                
+                return null;
+            }
+
+            resolveCollision(nodeA, nodeB, collision) {
+                // Handle center node collision (using distance-based collision data)
+                if (collision.centerNode && collision.otherNode) {
+                    const centerNode = collision.centerNode;
+                    const otherNode = collision.otherNode;
+                    
+                    // Calculate direction from center to other node
+                    const dx = otherNode.x - centerNode.x;
+                    const dy = otherNode.y - centerNode.y;
+                    const distance = collision.distance || Math.sqrt(dx * dx + dy * dy) || 1;
+                    
+                    // Normalize direction
+                    const dirX = dx / distance;
+                    const dirY = dy / distance;
+                    
+                    // Move other node to exactly the minimum distance
+                    otherNode.x = centerNode.x + dirX * collision.minDistance;
+                    otherNode.y = centerNode.y + dirY * collision.minDistance;
+                    return;
+                }
+                
+                // For non-center nodes, use standard collision resolution
+                const dx = nodeB.x - nodeA.x;
+                const dy = nodeB.y - nodeA.y;
+                const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+                
+                // Normalize direction
+                const dirX = dx / distance;
+                const dirY = dy / distance;
+                
+                // Calculate move distance (half the overlap each)
+                const moveX = (collision.overlapX * dirX) / 2;
+                const moveY = (collision.overlapY * dirY) / 2;
+                
+                // Apply movement
+                nodeA.x -= moveX;
+                nodeA.y -= moveY;
+                nodeB.x += moveX;
+                nodeB.y += moveY;
+            }
+
+            renderAllNodes() {
+                const positions = new Map();
+                // Force creation of ALL nodes regardless of collapsed state
+                this.calculateNodePositions(mindmapData, 0, 0, 0, 2 * Math.PI, 0, positions, true);
+                
+                // Apply collision detection and resolution
+                this.resolveCollisions(positions);
+                
+                positions.forEach((pos, nodeId) => {
+                    this.createNodeElement(pos.nodeData, pos.x, pos.y, pos.level);
+                    this.createConnectionLine(pos.nodeData, positions);
+                });
+
+                this.updateVisibility();
+            }
+
+            createNodeElement(nodeData, x, y, level) {
+                const nodeEl = document.createElement('div');
+                nodeEl.id = `node-${nodeData.id}`;
+                nodeEl.className = 'node';
+                nodeEl.dataset.nodeId = nodeData.id;
+                
+                // Add level classes
+                if (nodeData.isRoot) nodeEl.classList.add('center-node');
+                else if (level === 1) nodeEl.classList.add('main-node');
+                else if (level === 2) nodeEl.classList.add('sub-node');
+                else nodeEl.classList.add('detail-node');
+
+                // Function to get appropriate icon for any node
+                const getNodeIcon = (nodeData) => {
+                    const iconMap = {
+                        // Main sections
+                        'about': 'building-2',
+                        'services': 'briefcase',
+                        'success': 'trophy',
+                        'innovation': 'zap',
+                        
+                        // About Us nodes
+                        'about-1': 'target',
+                        'about-2': 'brain',
+                        'about-3': 'handshake',
+                        
+                        // Service nodes
+                        'services-1': 'users', // AI & Analytics Consulting
+                        'services-2': 'cpu', // AI Implementation
+                        'services-3': 'graduation-cap', // Training
+                        
+                        // Success Stories
+                        'success-1': 'line-chart',
+                        'success-2': 'waves',
+                        'success-3': 'settings',
+                        'success-4': 'file-text',
+                        'success-5': 'message-square',
+                        'success-6': 'shield-check',
+                        'success-7': 'search',
+                        
+                        // Innovation section
+                        'challenge': 'alert-triangle',
+                        'partner': 'handshake',
+                        
+                        // In-House Project section
+                        'inhouse': 'home',
+                        'sectors-financial': 'dollar-sign',
+                        'sectors-insiders': 'users',
+                        
+                        // Challenge nodes
+                        'challenge-1': 'clock',
+                        'challenge-2': 'brain',
+                        'challenge-3': 'trending-up',
+                        'challenge-4': 'shield-check',
+                        
+                        // Partner nodes
+                        'partner-1': 'target',
+                        'partner-2': 'users',
+                        'partner-3': 'coins',
+                        
+                        // Benefits (legacy - can be removed if not needed)
+                        'benefit-2': 'dollar-sign',
+                        'benefit-3': 'piggy-bank',
+                        'benefit-4': 'clock',
+                        'benefit-5': 'timer',
+                        'benefit-6': 'lightbulb'
+                    };
+                    
+                    const iconName = iconMap[nodeData.id] || 'circle';
+                    return `<i data-lucide="${iconName}" class="service-icon"></i>`;
+                };
+
+                // Add content
+                if (nodeData.isRoot) {
+                    nodeEl.innerHTML = `
+                        <img src="[COMPANY LOGO & LETTERHEAD - PNG] Logo_Light_Wide (2).png" alt="Supertype">
+                        <div class="tagline">AI Development and Analytics services trusted by the country's largest enterprises</div>
+                        <div class="client-logos">
+                            <div class="logo-carousel">
+                                <img src="image (2).webp" alt="Client 1">
+                                <img src="image (3).webp" alt="Client 2">
+                                <img src="image (4).webp" alt="Client 3">
+                                <img src="image (5).webp" alt="Client 4">
+                                <img src="image (6).webp" alt="Client 5">
+                                <img src="image (7).webp" alt="Client 6">
+                                <img src="image (8).webp" alt="Client 7">
+                                <img src="image (9).webp" alt="Client 8">
+                                <img src="image (10).webp" alt="Client 9">
+                                <img src="image (11).webp" alt="Client 10">
+                                <img src="image (12).webp" alt="Client 11">
+                                <!-- Duplicate for seamless loop -->
+                                <img src="image (2).webp" alt="Client 1">
+                                <img src="image (3).webp" alt="Client 2">
+                                <img src="image (4).webp" alt="Client 3">
+                                <img src="image (5).webp" alt="Client 4">
+                                <img src="image (6).webp" alt="Client 5">
+                                <img src="image (7).webp" alt="Client 6">
+                                <img src="image (8).webp" alt="Client 7">
+                                <img src="image (9).webp" alt="Client 8">
+                                <img src="image (10).webp" alt="Client 9">
+                                <img src="image (11).webp" alt="Client 10">
+                                <img src="image (12).webp" alt="Client 11">
+                            </div>
+                        </div>
+                    `;
+                } else if (nodeData.children && nodeData.children.length > 0) {
+                    nodeEl.classList.add('expandable');
+                    const indicatorHtml = `<svg class="indicator" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
+                    const nodeIcon = getNodeIcon(nodeData);
+                    // Format text with bold title before colon
+                    const formattedText = nodeData.text.includes(':') 
+                        ? nodeData.text.replace(/^([^:]+):/, '<span class="node-title">$1:</span>')
+                        : nodeData.text;
+                    nodeEl.innerHTML = `${indicatorHtml}${nodeIcon}<span>${formattedText}</span>`;
+                } else {
+                    const nodeIcon = getNodeIcon(nodeData);
+                    // Format text with bold title before colon
+                    const formattedText = nodeData.text.includes(':') 
+                        ? nodeData.text.replace(/^([^:]+):/, '<span class="node-title">$1:</span>')
+                        : nodeData.text;
+                    nodeEl.innerHTML = `${nodeIcon}<span>${formattedText}</span>`;
+                }
+
+                // Position element
+                nodeEl.style.left = `${x + this.canvasSize.offsetX}px`;
+                nodeEl.style.top = `${y + this.canvasSize.offsetY}px`;
+
+                content.appendChild(nodeEl);
+                this.nodes.set(nodeData.id, { el: nodeEl, nodeData: nodeData, x: x, y: y });
+            }
+
+            createConnectionLine(nodeData, positions) {
+                if (nodeData.isRoot) return;
+
+                const parentId = this.findParentId(nodeData.id);
+                if (!parentId || !positions.has(parentId)) return;
+
+                const nodePos = positions.get(nodeData.id);
+                const parentPos = positions.get(parentId);
+
+                const x1 = parentPos.x + this.canvasSize.offsetX;
+                const y1 = parentPos.y + this.canvasSize.offsetY;
+                const x2 = nodePos.x + this.canvasSize.offsetX;
+                const y2 = nodePos.y + this.canvasSize.offsetY;
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const d = `M ${x1} ${y1} C ${x1} ${(y1 + y2)/2}, ${x2} ${(y1 + y2)/2}, ${x2} ${y2}`;
+                line.setAttribute('d', d);
+                line.classList.add('line');
+                line.dataset.childId = nodeData.id;
+                line.dataset.parentId = parentId;
+
+                svg.appendChild(line);
+                this.lines.set(nodeData.id, line);
+            }
+
+            findParentId(nodeId) {
+                const findParent = (node, targetId, parentId = null) => {
+                    if (node.id === targetId) return parentId;
+                    if (node.children) {
+                        for (const child of node.children) {
+                            const result = findParent(child, targetId, node.id);
+                            if (result) return result;
+                        }
+                    }
+                    return null;
+                };
+                return findParent(mindmapData, nodeId);
+            }
+
+            setupEventDelegation() {
+                content.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const nodeEl = e.target.closest('.node');
+                    if (!nodeEl || !nodeEl.dataset.nodeId) return;
+                    
+                    const nodeId = nodeEl.dataset.nodeId;
+                    
+                    // Special handling for modal nodes
+                    if (nodeId === 'about-3') {
+                        openClientModal();
+                        return;
+                    }
+                    
+                    if (nodeId === 'success-2') {
+                        openWaterLevelModal();
+                        return;
+                    }
+                    
+                    if (nodeId === 'success-3') {
+                        openAdaroModal();
+                        return;
+                    }
+                    
+                    if (nodeId === 'success-4') {
+                        openIdxReportsModal();
+                        return;
+                    }
+                    
+                    if (nodeId === 'sectors-financial') {
+                        openSectorsFinancialModal();
+                        return;
+                    }
+                    
+                    if (nodeId === 'sectors-insiders') {
+                        openSectorsInsidersModal();
+                        return;
+                    }
+                    
+                    if (nodeId === 'success-5') {
+                        openBankIndonesiaModal();
+                        return;
+                    }
+                    
+                    if (nodeId === 'success-6') {
+                        openBpkRiModal();
+                        return;
+                    }
+                    
+                    if (nodeId === 'success-7') {
+                        openOsintGovernmentModal();
+                        return;
+                    }
+                    
+                    this.toggleNode(nodeId);
+                });
+            }
+
+            toggleNode(nodeId) {
+                const nodeData = findNodeById(mindmapData, nodeId);
+                if (!nodeData || !nodeData.children) return;
+
+                nodeData.collapsed = !nodeData.collapsed;
+                this.updateVisibility();
+            }
+
+            updateVisibility() {
+                const visibleNodes = new Set();
+                
+                const markVisible = (node) => {
+                    visibleNodes.add(node.id);
+                    if (node.children && !node.collapsed) {
+                        node.children.forEach(markVisible);
+                    }
+                };
+                
+                markVisible(mindmapData);
+
+                // Update node visibility
+                this.nodes.forEach((nodeInfo, nodeId) => {
+                    const isVisible = visibleNodes.has(nodeId);
+                    nodeInfo.el.style.display = isVisible ? 'flex' : 'none';
+                    
+                    // Update collapsed indicator
+                    if (nodeInfo.nodeData.children) {
+                        const collapsed = nodeInfo.nodeData.collapsed;
+                        nodeInfo.el.classList.toggle('collapsed', collapsed);
+                    }
+                });
+
+                // Update line visibility
+                this.lines.forEach((line, nodeId) => {
+                    const isVisible = visibleNodes.has(nodeId);
+                    line.style.display = isVisible ? 'block' : 'none';
+                });
+            }
+
+            centerViewport() {
+                const rootNode = this.nodes.get('center');
+                if (rootNode) {
+                    panX = (container.offsetWidth / 2) - (rootNode.x + this.canvasSize.offsetX);
+                    panY = (container.offsetHeight / 2) - (rootNode.y + this.canvasSize.offsetY);
+                    updateTransform();
+                }
+            }
+        }
+
+        // Global instance
+        const mindMap = new MindMap();
+
+        function renderMindmap() {
+            if (!mindMap.initialized) {
+                mindMap.init();
+            }
+        }
+
+        // Modal functions
+        function openClientModal() {
+            document.getElementById('clientModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeClientModal() {
+            document.getElementById('clientModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        function openWaterLevelModal() {
+            const modal = document.getElementById('waterLevelModal');
+            const iframe = document.getElementById('waterLevelFrame');
+            
+            // Reference the external HTML file
+            iframe.src = 'barito_river_simulation.html';
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeWaterLevelModal() {
+            document.getElementById('waterLevelModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function openAdaroModal() {
+            document.getElementById('adaroModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeAdaroModal() {
+            document.getElementById('adaroModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        function openIdxReportsModal() {
+            document.getElementById('idxReportsModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeIdxReportsModal() {
+            document.getElementById('idxReportsModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        function openSectorsFinancialModal() {
+            document.getElementById('sectorsFinancialModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeSectorsFinancialModal() {
+            document.getElementById('sectorsFinancialModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        function openSectorsInsidersModal() {
+            document.getElementById('sectorsInsidersModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeSectorsInsidersModal() {
+            document.getElementById('sectorsInsidersModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        function openBankIndonesiaModal() {
+            document.getElementById('bankIndonesiaModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeBankIndonesiaModal() {
+            document.getElementById('bankIndonesiaModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        function openBpkRiModal() {
+            document.getElementById('bpkRiModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeBpkRiModal() {
+            document.getElementById('bpkRiModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        function openOsintGovernmentModal() {
+            document.getElementById('osintGovernmentModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeOsintGovernmentModal() {
+            document.getElementById('osintGovernmentModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+
+        // Close modal when clicking outside the modal content
+        window.addEventListener('click', (e) => {
+            const clientModal = document.getElementById('clientModal');
+            const waterLevelModal = document.getElementById('waterLevelModal');
+            const adaroModal = document.getElementById('adaroModal');
+            const idxReportsModal = document.getElementById('idxReportsModal');
+            const sectorsFinancialModal = document.getElementById('sectorsFinancialModal');
+            const sectorsInsidersModal = document.getElementById('sectorsInsidersModal');
+            const bankIndonesiaModal = document.getElementById('bankIndonesiaModal');
+            const bpkRiModal = document.getElementById('bpkRiModal');
+            const osintGovernmentModal = document.getElementById('osintGovernmentModal');
+            
+            if (e.target === clientModal) {
+                closeClientModal();
+            }
+            if (e.target === waterLevelModal) {
+                closeWaterLevelModal();
+            }
+            if (e.target === adaroModal) {
+                closeAdaroModal();
+            }
+            if (e.target === idxReportsModal) {
+                closeIdxReportsModal();
+            }
+            if (e.target === sectorsFinancialModal) {
+                closeSectorsFinancialModal();
+            }
+            if (e.target === sectorsInsidersModal) {
+                closeSectorsInsidersModal();
+            }
+            if (e.target === bankIndonesiaModal) {
+                closeBankIndonesiaModal();
+            }
+            if (e.target === bpkRiModal) {
+                closeBpkRiModal();
+            }
+            if (e.target === osintGovernmentModal) {
+                closeOsintGovernmentModal();
+            }
+        });
+
+        // Close modal with Escape key
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeClientModal();
+                closeWaterLevelModal();
+                closeAdaroModal();
+                closeIdxReportsModal();
+                closeSectorsFinancialModal();
+                closeSectorsInsidersModal();
+                closeBankIndonesiaModal();
+                closeBpkRiModal();
+                closeOsintGovernmentModal();
+            }
+        });
+        
+        window.onload = renderMindmap;
+        window.onresize = () => {
+            if (mindMap.initialized) {
+                mindMap.centerViewport();
+            }
+        };
+
+
+    </script>
+</body>
+</html>

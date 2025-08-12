@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barito River 3D Simulation - Enhanced</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+        }
+        
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100vh; 
+        }
+        
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, rgba(10, 10, 20, 0.9), rgba(20, 20, 40, 0.85));
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 14px;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 80px rgba(0, 150, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 250px;
+        }
+        
+        #info-panel h3 {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #00D4FF;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: #FFFFFF;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        
+        .water-level-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .water-level-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00D4FF, #0099CC);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+        
+        .warning-level {
+            background: linear-gradient(90deg, #FF6B6B, #FF0000) !important;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: linear-gradient(135deg, rgba(10, 10, 20, 0.9), rgba(20, 20, 40, 0.85));
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .control-btn.active {
+            background: linear-gradient(135deg, #00D4FF, #0099CC);
+        }
+        
+        #weather-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(10, 10, 20, 0.9), rgba(20, 20, 40, 0.85));
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .weather-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .weather-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .weather-btn.active {
+            background: linear-gradient(135deg, #00D4FF, #0099CC);
+            border-color: #00D4FF;
+        }
+        
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a14, #14141f);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 3px solid rgba(0, 212, 255, 0.1);
+            border-top: 3px solid #00D4FF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #00D4FF;
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 2px;
+        }
+    </style>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Three.js and dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/WaterShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loader"></div>
+        <div class="loading-text">INITIALIZING SIMULATION</div>
+    </div>
+    
+    <div id="info-panel">
+        <h3><i data-lucide="activity" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>BARITO RIVER MONITORING</h3>
+        <div class="info-item">
+            <span class="info-label">Water Level</span>
+            <span class="info-value"><span id="water-level-display">0.00</span> m</span>
+        </div>
+        <div class="water-level-bar">
+            <div class="water-level-fill" id="water-level-bar"></div>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Status</span>
+            <span class="info-value" id="status-display">Normal</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Active Sensors</span>
+            <span class="info-value">4 / 4</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Vessels in Area</span>
+            <span class="info-value" id="vessel-count">0</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Time</span>
+            <span class="info-value" id="time-display">12:00</span>
+        </div>
+    </div>
+    
+    <div id="weather-controls">
+        <button class="weather-btn active" onclick="setWeather('clear')"><i data-lucide="sun" style="width: 14px; height: 14px;"></i> Clear</button>
+        <button class="weather-btn" onclick="setWeather('cloudy')"><i data-lucide="cloud" style="width: 14px; height: 14px;"></i> Cloudy</button>
+        <button class="weather-btn" onclick="setWeather('rain')"><i data-lucide="cloud-rain" style="width: 14px; height: 14px;"></i> Rain</button>
+        <button class="weather-btn" onclick="setWeather('night')"><i data-lucide="moon" style="width: 14px; height: 14px;"></i> Night</button>
+    </div>
+    
+    <div id="controls">
+        <button class="control-btn" onclick="toggleAnimation()"><i data-lucide="pause" style="width: 16px; height: 16px;"></i> Pause</button>
+        <button class="control-btn" onclick="changeView('overview')"><i data-lucide="map" style="width: 16px; height: 16px;"></i> Overview</button>
+        <button class="control-btn" onclick="changeView('bridge')"><i data-lucide="git-commit" style="width: 16px; height: 16px;"></i> Bridge</button>
+        <button class="control-btn" onclick="changeView('sensor')"><i data-lucide="radio" style="width: 16px; height: 16px;"></i> Sensor</button>
+        <button class="control-btn" onclick="resetCamera()"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> Reset</button>
+    </div>
+
+    <script type="module">
+        // Global variables
+        let scene, camera, renderer, controls, composer;
+        let waterMesh, waterGeometry, waterMaterial;
+        let radarSensors = [];
+        let barges = [];
+        let particles = [];
+        let clouds = [];
+        let birds = [];
+        
+        // Animation variables
+        let clock = new THREE.Clock();
+        let time = 0;
+        let isPaused = false;
+        let currentWeather = 'clear';
+        let dayTime = 12; // 24-hour format
+        
+        // Water simulation variables
+        let currentWaterLevel = 0.5;
+        const minWaterLevel = 0.2;
+        const maxWaterLevel = 1.5;
+        const waterLevelChangeSpeed = 0.0008;
+        let waterLevelDirection = 1;
+        
+        // Barge animation variables
+        const bargeSpeed = 0.04; // Slower, more realistic speed
+        const bargeSpawnInterval = 35000; // Much less frequent - one every 35 seconds
+        let lastBargeSpawnTime = 0;
+        
+        // Lighting
+        let sunLight, moonLight, ambientLight;
+        let pointLights = [];
+        
+        // Materials
+        let materials = {};
+        
+        // Particle systems
+        let rainGeometry, rainMaterial, rain;
+        let splashParticles = [];
+        
+        // Enhanced water shader
+        const waterVertexShader = `
+            uniform float time;
+            uniform float waveHeight;
+            uniform float waveFrequency;
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+            
+            void main() {
+                vUv = uv;
+                vec3 pos = position;
+                
+                // Create multiple wave layers for realistic water
+                float wave1 = sin(position.x * waveFrequency + time) * cos(position.z * waveFrequency + time) * waveHeight;
+                float wave2 = sin(position.x * waveFrequency * 1.5 + time * 1.2) * cos(position.z * waveFrequency * 1.5 + time * 1.2) * waveHeight * 0.5;
+                float wave3 = sin(position.x * waveFrequency * 2.2 + time * 0.8) * cos(position.z * waveFrequency * 2.2 + time * 0.8) * waveHeight * 0.25;
+                
+                pos.y += wave1 + wave2 + wave3;
+                
+                // Calculate normal for lighting
+                vec3 newNormal = normalize(vec3(
+                    -waveHeight * waveFrequency * cos(position.x * waveFrequency + time),
+                    1.0,
+                    -waveHeight * waveFrequency * cos(position.z * waveFrequency + time)
+                ));
+                
+                vNormal = normalMatrix * newNormal;
+                vWorldPosition = (modelMatrix * vec4(pos, 1.0)).xyz;
+                
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+        `;
+        
+        const waterFragmentShader = `
+            uniform vec3 waterColor;
+            uniform vec3 sunDirection;
+            uniform float time;
+            uniform float opacity;
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+            
+            void main() {
+                // Water color with depth variation
+                vec3 color = waterColor;
+                
+                // Add foam at wave peaks
+                float foam = smoothstep(0.8, 1.0, vWorldPosition.y);
+                color = mix(color, vec3(1.0), foam * 0.3);
+                
+                // Simple lighting
+                float lightIntensity = max(dot(vNormal, sunDirection), 0.0);
+                color *= (0.6 + lightIntensity * 0.4);
+                
+                // Add some shimmer
+                float shimmer = sin(time * 10.0 + vUv.x * 50.0) * sin(time * 10.0 + vUv.y * 50.0);
+                color += vec3(shimmer * 0.05);
+                
+                // Fresnel effect for water transparency at edges
+                vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+                float fresnel = pow(1.0 - max(dot(viewDirection, vNormal), 0.0), 2.0);
+                float alpha = mix(0.6, 0.95, fresnel) * opacity;
+                
+                gl_FragColor = vec4(color, alpha);
+            }
+        `;
+        
+        // Initialize the enhanced scene
+        function init() {
+            // Scene setup with fog for atmosphere
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x87CEEB, 0.002);
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(50, 30, 80);
+            
+            // Renderer setup with enhanced settings
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                alpha: true,
+                powerPreference: "high-performance"
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            document.body.appendChild(renderer.domElement);
+            
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2.1;
+            controls.minDistance = 20;
+            controls.maxDistance = 500;
+            
+            // Initialize materials
+            initMaterials();
+            
+            // Enhanced lighting
+            setupLighting();
+            
+            // Create environment
+            createSkybox();
+            createEnhancedWater();
+            createEnhancedTerrain();
+            createRealisticBridge();
+            createEnhancedSensors();
+            createVegetation();
+            createBirds();
+            
+            // Particle systems
+            if (currentWeather === 'rain') {
+                createRainEffect();
+            }
+            
+            // Event listeners
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading-screen').style.display = 'none';
+                    // Initialize Lucide icons
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                }, 500);
+            }, 1000);
+            
+            // Start animation
+            animate();
+        }
+        
+        function initMaterials() {
+            // Water material
+            materials.water = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    waterColor: { value: new THREE.Color(0x006994) },
+                    sunDirection: { value: new THREE.Vector3(0.7, 0.7, 0) },
+                    waveHeight: { value: 0.15 },
+                    waveFrequency: { value: 0.1 },
+                    opacity: { value: 0.85 }
+                },
+                vertexShader: waterVertexShader,
+                fragmentShader: waterFragmentShader,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            
+            // Terrain material with better texturing
+            materials.terrain = new THREE.MeshStandardMaterial({
+                color: 0x3a5f3a,
+                roughness: 0.8,
+                metalness: 0.1,
+                normalScale: new THREE.Vector2(1, 1)
+            });
+            
+            // Bridge materials
+            materials.concrete = new THREE.MeshStandardMaterial({
+                color: 0x8a8a8a,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            
+            materials.steel = new THREE.MeshStandardMaterial({
+                color: 0x4a4a4a,
+                roughness: 0.3,
+                metalness: 0.8
+            });
+            
+            materials.road = new THREE.MeshStandardMaterial({
+                color: 0x2a2a2a,
+                roughness: 0.7,
+                metalness: 0.0
+            });
+        }
+        
+        function setupLighting() {
+            // Ambient light for base illumination
+            ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            scene.add(ambientLight);
+            
+            // Hemisphere light for sky/ground color variation
+            const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x3a5f3a, 0.6);
+            hemiLight.position.set(0, 50, 0);
+            scene.add(hemiLight);
+            
+            // Main directional light (sun)
+            sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            sunLight.position.set(100, 100, 50);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 500;
+            sunLight.shadow.camera.left = -200;
+            sunLight.shadow.camera.right = 200;
+            sunLight.shadow.camera.top = 200;
+            sunLight.shadow.camera.bottom = -200;
+            scene.add(sunLight);
+            
+            // Add sun helper for visual reference
+            const sunSphere = new THREE.Mesh(
+                new THREE.SphereGeometry(5, 16, 16),
+                new THREE.MeshBasicMaterial({ 
+                    color: 0xffff00, 
+                    emissive: 0xffff00,
+                    emissiveIntensity: 1
+                })
+            );
+            sunSphere.position.copy(sunLight.position);
+            scene.add(sunSphere);
+            
+            // Point lights for sensors
+            for (let i = 0; i < 4; i++) {
+                const pointLight = new THREE.PointLight(0x00ffff, 0.5, 30);
+                pointLight.castShadow = true;
+                pointLights.push(pointLight);
+                scene.add(pointLight);
+            }
+        }
+        
+        function createSkybox() {
+            // Create gradient sky
+            const skyGeometry = new THREE.SphereGeometry(1000, 32, 32);
+            const skyMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    topColor: { value: new THREE.Color(0x0077be) },
+                    bottomColor: { value: new THREE.Color(0xffffff) },
+                    offset: { value: 33 },
+                    exponent: { value: 0.6 }
+                },
+                vertexShader: `
+                    varying vec3 vWorldPosition;
+                    void main() {
+                        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                        vWorldPosition = worldPosition.xyz;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 topColor;
+                    uniform vec3 bottomColor;
+                    uniform float offset;
+                    uniform float exponent;
+                    varying vec3 vWorldPosition;
+                    void main() {
+                        float h = normalize(vWorldPosition + offset).y;
+                        gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
+                    }
+                `,
+                side: THREE.BackSide
+            });
+            const sky = new THREE.Mesh(skyGeometry, skyMaterial);
+            scene.add(sky);
+            
+            // Add clouds
+            createClouds();
+        }
+        
+        function createClouds() {
+            const cloudGeometry = new THREE.PlaneGeometry(100, 100);
+            const cloudMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.4,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            
+            for (let i = 0; i < 10; i++) {
+                const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial.clone());
+                cloud.position.set(
+                    Math.random() * 800 - 400,
+                    100 + Math.random() * 50,
+                    Math.random() * 800 - 400
+                );
+                cloud.rotation.x = Math.PI / 2;
+                cloud.scale.setScalar(Math.random() * 2 + 1);
+                clouds.push(cloud);
+                scene.add(cloud);
+            }
+        }
+        
+        function createEnhancedWater() {
+            // Create water with vertex displacement for waves
+            waterGeometry = new THREE.PlaneGeometry(500, 80, 128, 128);
+            waterMesh = new THREE.Mesh(waterGeometry, materials.water);
+            waterMesh.rotation.x = -Math.PI / 2;
+            waterMesh.position.y = currentWaterLevel;
+            waterMesh.receiveShadow = true;
+            scene.add(waterMesh);
+        }
+        
+        function createEnhancedTerrain() {
+            // Create terrain with height variation
+            const bankLength = 500;
+            const bankWidth = 15;
+            const bankHeight = 12;
+            
+            // Create terrain geometry with vertex displacement
+            const terrainGeometry = new THREE.BoxGeometry(bankLength, bankHeight, bankWidth, 50, 1, 5);
+            const positions = terrainGeometry.attributes.position.array;
+            
+            // Add height variation
+            for (let i = 0; i < positions.length; i += 3) {
+                const x = positions[i];
+                const y = positions[i + 1];
+                const z = positions[i + 2];
+                
+                // Add noise to top vertices
+                if (y > bankHeight / 2 - 1) {
+                    positions[i + 1] += Math.sin(x * 0.05) * Math.cos(z * 0.05) * 2;
+                }
+            }
+            
+            terrainGeometry.computeVertexNormals();
+            
+            // Left bank
+            const leftBank = new THREE.Mesh(terrainGeometry.clone(), materials.terrain);
+            leftBank.position.set(0, bankHeight / 2, -40);
+            leftBank.castShadow = true;
+            leftBank.receiveShadow = true;
+            scene.add(leftBank);
+            
+            // Right bank
+            const rightBank = new THREE.Mesh(terrainGeometry.clone(), materials.terrain);
+            rightBank.position.set(0, bankHeight / 2, 40);
+            rightBank.castShadow = true;
+            rightBank.receiveShadow = true;
+            scene.add(rightBank);
+            
+            // Add terrain details
+            addTerrainDetails();
+        }
+        
+        function addTerrainDetails() {
+            // Add rocks
+            const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
+            const rockMaterial = new THREE.MeshStandardMaterial({
+                color: 0x555555,
+                roughness: 0.9
+            });
+            
+            for (let i = 0; i < 30; i++) {
+                const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+                const scale = Math.random() * 2 + 0.5;
+                rock.scale.set(scale, scale * 0.7, scale);
+                rock.position.set(
+                    Math.random() * 400 - 200,
+                    10 + Math.random() * 2,
+                    (Math.random() > 0.5 ? 1 : -1) * (35 + Math.random() * 10)
+                );
+                rock.rotation.set(
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI
+                );
+                rock.castShadow = true;
+                rock.receiveShadow = true;
+                scene.add(rock);
+            }
+        }
+        
+        function createRealisticBridge() {
+            const bridgeGroup = new THREE.Group();
+            
+            // Main deck
+            const deckGeometry = new THREE.BoxGeometry(12, 1.5, 70);
+            const deck = new THREE.Mesh(deckGeometry, materials.road);
+            deck.position.y = 8;
+            deck.castShadow = true;
+            deck.receiveShadow = true;
+            bridgeGroup.add(deck);
+            
+            // Add road markings
+            const lineGeometry = new THREE.BoxGeometry(0.2, 0.1, 68);
+            const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            const centerLine = new THREE.Mesh(lineGeometry, lineMaterial);
+            centerLine.position.y = 8.76;
+            bridgeGroup.add(centerLine);
+            
+            // Support pillars with detailed structure
+            const pillarGroup = createBridgePillar(0, -35);
+            bridgeGroup.add(pillarGroup);
+            const pillarGroup2 = createBridgePillar(0, 35);
+            bridgeGroup.add(pillarGroup2);
+            
+            // Simple, clean bridge design without cables
+            
+            // Guardrails with posts
+            createGuardrails(bridgeGroup);
+            
+            // Add bridge lights
+            for (let i = -30; i <= 30; i += 15) {
+                const lightPole = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.1, 0.1, 3),
+                    materials.steel
+                );
+                lightPole.position.set(6, 9.5, i);
+                bridgeGroup.add(lightPole);
+                
+                const light = new THREE.PointLight(0xffaa00, 0.5, 20);
+                light.position.set(6, 11, i);
+                bridgeGroup.add(light);
+            }
+            
+            scene.add(bridgeGroup);
+        }
+        
+        function createBridgePillar(x, z) {
+            const pillarGroup = new THREE.Group();
+            
+            // Base
+            const baseGeometry = new THREE.BoxGeometry(12, 3, 15);
+            const base = new THREE.Mesh(baseGeometry, materials.concrete);
+            base.position.set(x, 1.5, z);
+            base.castShadow = true;
+            base.receiveShadow = true;
+            pillarGroup.add(base);
+            
+            // Main column
+            const columnGeometry = new THREE.BoxGeometry(8, 10, 12);
+            const column = new THREE.Mesh(columnGeometry, materials.concrete);
+            column.position.set(x, 8, z);
+            column.castShadow = true;
+            column.receiveShadow = true;
+            pillarGroup.add(column);
+            
+            // Add architectural details
+            const capGeometry = new THREE.BoxGeometry(10, 1, 14);
+            const cap = new THREE.Mesh(capGeometry, materials.concrete);
+            cap.position.set(x, 13.5, z);
+            pillarGroup.add(cap);
+            
+            return pillarGroup;
+        }
+        
+        function createGuardrails(bridgeGroup) {
+            const railGeometry = new THREE.BoxGeometry(0.3, 1.2, 70);
+            const postGeometry = new THREE.BoxGeometry(0.3, 1.5, 0.3);
+            
+            // Left rail
+            const leftRail = new THREE.Mesh(railGeometry, materials.steel);
+            leftRail.position.set(-5.5, 9, 0);
+            leftRail.castShadow = true;
+            bridgeGroup.add(leftRail);
+            
+            // Right rail
+            const rightRail = new THREE.Mesh(railGeometry, materials.steel);
+            rightRail.position.set(5.5, 9, 0);
+            rightRail.castShadow = true;
+            bridgeGroup.add(rightRail);
+            
+            // Posts
+            for (let i = -30; i <= 30; i += 6) {
+                const leftPost = new THREE.Mesh(postGeometry, materials.steel);
+                leftPost.position.set(-5.5, 8.75, i);
+                bridgeGroup.add(leftPost);
+                
+                const rightPost = new THREE.Mesh(postGeometry, materials.steel);
+                rightPost.position.set(5.5, 8.75, i);
+                bridgeGroup.add(rightPost);
+            }
+        }
+        
+        function createEnhancedSensors() {
+            const sensorPositions = [
+                { x: -120, z: 30 },
+                { x: -40, z: 30 },
+                { x: 40, z: 30 },
+                { x: 120, z: 30 }
+            ];
+            
+            sensorPositions.forEach((pos, index) => {
+                const sensorGroup = new THREE.Group();
+                
+                // Sensor base platform
+                const platformGeometry = new THREE.CylinderGeometry(2, 2.5, 0.5, 8);
+                const platformMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x444444,
+                    metalness: 0.6,
+                    roughness: 0.3
+                });
+                const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+                platform.position.y = 10;
+                platform.castShadow = true;
+                platform.receiveShadow = true;
+                sensorGroup.add(platform);
+                
+                // Main pole with segments
+                const poleGeometry = new THREE.CylinderGeometry(0.3, 0.4, 20, 8);
+                const poleMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x666666,
+                    metalness: 0.7,
+                    roughness: 0.2
+                });
+                const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+                pole.position.y = 20;
+                pole.castShadow = true;
+                sensorGroup.add(pole);
+                
+                // Sensor head with antenna
+                const headGroup = new THREE.Group();
+                
+                // Main sensor unit
+                const sensorGeometry = new THREE.BoxGeometry(1.5, 1, 1.5);
+                const sensorMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x0088cc,
+                    metalness: 0.5,
+                    roughness: 0.3,
+                    emissive: 0x004466,
+                    emissiveIntensity: 0.2
+                });
+                const sensorHead = new THREE.Mesh(sensorGeometry, sensorMaterial);
+                headGroup.add(sensorHead);
+                
+                // Antenna
+                const antennaGeometry = new THREE.CylinderGeometry(0.05, 0.05, 3);
+                const antennaMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xcccccc,
+                    metalness: 0.9,
+                    roughness: 0.1
+                });
+                const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
+                antenna.position.y = 2;
+                headGroup.add(antenna);
+                
+                // LED indicator
+                const ledGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const ledMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ff00,
+                    emissive: 0x00ff00,
+                    emissiveIntensity: 1
+                });
+                const led = new THREE.Mesh(ledGeometry, ledMaterial);
+                led.position.set(0, 0.6, 0.7);
+                headGroup.add(led);
+                
+                headGroup.position.y = 30;
+                sensorGroup.add(headGroup);
+                
+                // Scanning laser effect
+                const laserGeometry = new THREE.ConeGeometry(0.2, 5, 8);
+                const laserMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ffff,
+                    transparent: true,
+                    opacity: 0.3,
+                    emissive: 0x00ffff,
+                    emissiveIntensity: 1
+                });
+                const laser = new THREE.Mesh(laserGeometry, laserMaterial);
+                laser.position.y = 29;
+                laser.rotation.x = Math.PI;
+                sensorGroup.add(laser);
+                
+                // Data visualization beam
+                const beamGeometry = new THREE.CylinderGeometry(0.05, 0.5, 20, 8);
+                const beamMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ff00,
+                    transparent: true,
+                    opacity: 0,
+                    emissive: 0x00ff00,
+                    emissiveIntensity: 1
+                });
+                const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+                beam.position.y = 40;
+                sensorGroup.add(beam);
+                
+                // Position sensor group
+                sensorGroup.position.set(pos.x, 0, pos.z);
+                scene.add(sensorGroup);
+                
+                // Position point light
+                if (pointLights[index]) {
+                    pointLights[index].position.set(pos.x, 35, pos.z);
+                }
+                
+                // Store sensor data
+                radarSensors.push({
+                    group: sensorGroup,
+                    head: headGroup,
+                    led: led,
+                    laser: laser,
+                    beam: beam,
+                    antenna: antenna,
+                    scanAngle: Math.random() * Math.PI * 2,
+                    beamActive: false,
+                    beamStartTime: 0,
+                    pulsePhase: Math.random() * Math.PI * 2
+                });
+            });
+        }
+        
+        function createVegetation() {
+            // Create realistic trees with LOD
+            const treePositions = [];
+            for (let i = 0; i < 40; i++) {
+                const x = Math.random() * 400 - 200;
+                const z = (Math.random() > 0.5 ? 1 : -1) * (40 + Math.random() * 20);
+                treePositions.push({ x, z });
+            }
+            
+            treePositions.forEach(pos => {
+                const treeGroup = new THREE.Group();
+                
+                // Trunk with bark texture
+                const trunkGeometry = new THREE.CylinderGeometry(0.8, 1.2, 8, 8);
+                const trunkMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x4a3c28,
+                    roughness: 0.9,
+                    metalness: 0.0
+                });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.y = 14;
+                trunk.castShadow = true;
+                trunk.receiveShadow = true;
+                treeGroup.add(trunk);
+                
+                // Foliage with multiple layers
+                const foliageGeometry1 = new THREE.ConeGeometry(6, 8, 8);
+                const foliageMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x2d4a2b,
+                    roughness: 0.8,
+                    metalness: 0.0
+                });
+                
+                const foliage1 = new THREE.Mesh(foliageGeometry1, foliageMaterial);
+                foliage1.position.y = 20;
+                foliage1.castShadow = true;
+                foliage1.receiveShadow = true;
+                treeGroup.add(foliage1);
+                
+                const foliage2 = new THREE.Mesh(foliageGeometry1.clone(), foliageMaterial);
+                foliage2.scale.set(0.8, 0.8, 0.8);
+                foliage2.position.y = 24;
+                treeGroup.add(foliage2);
+                
+                const foliage3 = new THREE.Mesh(foliageGeometry1.clone(), foliageMaterial);
+                foliage3.scale.set(0.6, 0.6, 0.6);
+                foliage3.position.y = 27;
+                treeGroup.add(foliage3);
+                
+                // Random rotation and scale
+                treeGroup.rotation.y = Math.random() * Math.PI * 2;
+                const scale = 0.8 + Math.random() * 0.4;
+                treeGroup.scale.set(scale, scale, scale);
+                
+                treeGroup.position.set(pos.x, 0, pos.z);
+                scene.add(treeGroup);
+                
+                // Store for animation
+                treeGroup.userData = {
+                    swayOffset: Math.random() * Math.PI * 2,
+                    swaySpeed: 0.5 + Math.random() * 0.5,
+                    baseRotation: treeGroup.rotation.z
+                };
+                treeGroup.name = 'tree';
+            });
+            
+            // Add bushes and grass
+            createGrassAndBushes();
+        }
+        
+        function createGrassAndBushes() {
+            // Create grass patches
+            const grassGeometry = new THREE.ConeGeometry(0.5, 2, 4);
+            const grassMaterial = new THREE.MeshStandardMaterial({
+                color: 0x3a5f3a,
+                roughness: 0.9
+            });
+            
+            for (let i = 0; i < 100; i++) {
+                const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+                grass.position.set(
+                    Math.random() * 400 - 200,
+                    11,
+                    (Math.random() > 0.5 ? 1 : -1) * (35 + Math.random() * 15)
+                );
+                grass.scale.set(
+                    0.5 + Math.random() * 0.5,
+                    0.5 + Math.random() * 1,
+                    0.5 + Math.random() * 0.5
+                );
+                grass.rotation.z = (Math.random() - 0.5) * 0.3;
+                scene.add(grass);
+            }
+        }
+        
+        function createBirds() {
+            // Simple bird shapes that fly around
+            const birdGeometry = new THREE.ConeGeometry(0.2, 1, 4);
+            const birdMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            
+            for (let i = 0; i < 5; i++) {
+                const bird = new THREE.Mesh(birdGeometry, birdMaterial);
+                bird.rotation.x = Math.PI / 2;
+                bird.position.set(
+                    Math.random() * 200 - 100,
+                    50 + Math.random() * 30,
+                    Math.random() * 200 - 100
+                );
+                
+                bird.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.5,
+                        0,
+                        (Math.random() - 0.5) * 0.5
+                    ),
+                    baseY: bird.position.y
+                };
+                
+                birds.push(bird);
+                scene.add(bird);
+            }
+        }
+        
+        function createEnhancedBarge() {
+            const bargeGroup = new THREE.Group();
+            
+            // Create realistic flat coal barge - simple rectangular hull
+            const hullLength = 35 + Math.random() * 10; // 35-45 meters long
+            const hullWidth = 8 + Math.random() * 2; // 8-10 meters wide
+            const hullHeight = 1.5; // Low profile flat barge
+            
+            // Main hull - flat bottom barge (swap width and length for correct orientation)
+            const hullGeometry = new THREE.BoxGeometry(hullLength, hullHeight, hullWidth);
+            const hullMaterial = new THREE.MeshStandardMaterial({
+                color: 0x2a2a2a, // Dark gray/black steel
+                metalness: 0.3,
+                roughness: 0.7
+            });
+            const hull = new THREE.Mesh(hullGeometry, hullMaterial);
+            hull.position.y = -hullHeight / 2;
+            hull.castShadow = true;
+            hull.receiveShadow = true;
+            bargeGroup.add(hull);
+            
+            // Barge walls/sides (typical coal barge has low walls)
+            const wallHeight = 0.8;
+            const wallThickness = 0.1;
+            const wallMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1a1a1a,
+                metalness: 0.4,
+                roughness: 0.6
+            });
+            
+            // Front wall (now along X axis)
+            const frontWall = new THREE.Mesh(
+                new THREE.BoxGeometry(wallThickness, wallHeight, hullWidth),
+                wallMaterial
+            );
+            frontWall.position.set(hullLength / 2, wallHeight / 2, 0);
+            bargeGroup.add(frontWall);
+            
+            // Back wall
+            const backWall = new THREE.Mesh(
+                new THREE.BoxGeometry(wallThickness, wallHeight, hullWidth),
+                wallMaterial
+            );
+            backWall.position.set(-hullLength / 2, wallHeight / 2, 0);
+            bargeGroup.add(backWall);
+            
+            // Side walls (now along Z axis)
+            const sideWall1 = new THREE.Mesh(
+                new THREE.BoxGeometry(hullLength, wallHeight, wallThickness),
+                wallMaterial
+            );
+            sideWall1.position.set(0, wallHeight / 2, hullWidth / 2);
+            bargeGroup.add(sideWall1);
+            
+            const sideWall2 = new THREE.Mesh(
+                new THREE.BoxGeometry(hullLength, wallHeight, wallThickness),
+                wallMaterial
+            );
+            sideWall2.position.set(0, wallHeight / 2, -hullWidth / 2);
+            bargeGroup.add(sideWall2);
+            
+            // Coal load - more realistic flat pile
+            const coalMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0a0a0a, // Very dark, almost black
+                roughness: 0.95,
+                metalness: 0.05
+            });
+            
+            // Create a mounded coal pile using multiple merged geometries
+            const coalPileGroup = new THREE.Group();
+            
+            // Base layer of coal - fills the barge (swap dimensions)
+            const coalBase = new THREE.Mesh(
+                new THREE.BoxGeometry(hullLength - 0.4, 1.5, hullWidth - 0.4),
+                coalMaterial
+            );
+            coalBase.position.y = 0.75;
+            coalPileGroup.add(coalBase);
+            
+            // Mounded top - creates realistic pile shape
+            for (let i = 0; i < 8; i++) {
+                const moundLength = (hullLength - 2) * (1 - i * 0.08);
+                const moundWidth = (hullWidth - 1) * (1 - i * 0.1);
+                const moundHeight = 0.3;
+                
+                if (moundWidth > 0 && moundLength > 0) {
+                    const coalMound = new THREE.Mesh(
+                        new THREE.BoxGeometry(moundLength, moundHeight, moundWidth),
+                        coalMaterial
+                    );
+                    coalMound.position.y = 1.5 + i * 0.2;
+                    coalPileGroup.add(coalMound);
+                }
+            }
+            
+            // Add some random coal chunks on top for texture - keep them well within bounds
+            for (let i = 0; i < 5; i++) {
+                const chunk = new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        Math.random() * 2 + 1,
+                        Math.random() * 0.5 + 0.5,
+                        Math.random() * 2 + 1
+                    ),
+                    coalMaterial
+                );
+                chunk.position.set(
+                    (Math.random() - 0.5) * (hullLength - 8), // Keep well within length
+                    2.5 + Math.random() * 0.5,
+                    (Math.random() - 0.5) * (hullWidth - 4)   // Keep well within width
+                );
+                chunk.rotation.y = Math.random() * Math.PI;
+                coalPileGroup.add(chunk);
+            }
+            
+            bargeGroup.add(coalPileGroup);
+            
+            // Simple pusher boat at the back (common for barges)
+            const pusherGeometry = new THREE.BoxGeometry(4, 2, hullWidth * 0.8);
+            const pusherMaterial = new THREE.MeshStandardMaterial({
+                color: 0x4a4a4a,
+                metalness: 0.3,
+                roughness: 0.6
+            });
+            const pusher = new THREE.Mesh(pusherGeometry, pusherMaterial);
+            pusher.position.set(-hullLength / 2 - 2, 0.5, 0);
+            bargeGroup.add(pusher);
+            
+            // Small pilot house on pusher
+            const pilotHouseGeometry = new THREE.BoxGeometry(2, 1.5, 3);
+            const pilotHouseMaterial = new THREE.MeshStandardMaterial({
+                color: 0xcccccc,
+                metalness: 0.2,
+                roughness: 0.5
+            });
+            const pilotHouse = new THREE.Mesh(pilotHouseGeometry, pilotHouseMaterial);
+            pilotHouse.position.set(-hullLength / 2 - 2, 2, 0);
+            bargeGroup.add(pilotHouse);
+            
+            // Navigation lights - positioned correctly for forward movement
+            const redLight = new THREE.PointLight(0xff0000, 0.3, 5);
+            redLight.position.set(hullLength / 2, 1, -hullWidth / 2);
+            bargeGroup.add(redLight);
+            
+            const greenLight = new THREE.PointLight(0x00ff00, 0.3, 5);
+            greenLight.position.set(hullLength / 2, 1, hullWidth / 2);
+            bargeGroup.add(greenLight);
+            
+            // Initial position
+            bargeGroup.position.set(-250, currentWaterLevel - 1, Math.random() * 20 - 10);
+            
+            // Store barge data
+            bargeGroup.userData = {
+                speed: bargeSpeed * (0.8 + Math.random() * 0.4),
+                wobbleOffset: Math.random() * Math.PI * 2,
+                sinkDepth: Math.random() * 0.5 + 0.5
+            };
+            
+            scene.add(bargeGroup);
+            barges.push(bargeGroup);
+            
+            // Create wake effect
+            createWakeEffect(bargeGroup);
+        }
+        
+        function createWakeEffect(barge) {
+            const wakeGeometry = new THREE.PlaneGeometry(30, 10, 10, 10);
+            const wakeMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+            const wake = new THREE.Mesh(wakeGeometry, wakeMaterial);
+            wake.rotation.x = -Math.PI / 2;
+            wake.position.set(-15, 0.1, 0);
+            barge.add(wake);
+            
+            barge.userData.wake = wake;
+        }
+        
+        function createRainEffect() {
+            const rainCount = 1000;
+            rainGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(rainCount * 3);
+            const velocities = new Float32Array(rainCount);
+            
+            for (let i = 0; i < rainCount * 3; i += 3) {
+                positions[i] = Math.random() * 400 - 200;
+                positions[i + 1] = Math.random() * 100;
+                positions[i + 2] = Math.random() * 400 - 200;
+                velocities[i / 3] = 0.5 + Math.random() * 0.5;
+            }
+            
+            rainGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            rainGeometry.userData.velocities = velocities;
+            
+            rainMaterial = new THREE.PointsMaterial({
+                color: 0xaaaaaa,
+                size: 0.3,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+            
+            rain = new THREE.Points(rainGeometry, rainMaterial);
+            scene.add(rain);
+        }
+        
+        function updateRain() {
+            if (!rain) return;
+            
+            const positions = rain.geometry.attributes.position.array;
+            const velocities = rain.geometry.userData.velocities;
+            
+            for (let i = 0; i < positions.length; i += 3) {
+                positions[i + 1] -= velocities[i / 3];
+                
+                if (positions[i + 1] < 0) {
+                    positions[i + 1] = 100;
+                }
+            }
+            
+            rain.geometry.attributes.position.needsUpdate = true;
+        }
+        
+        // Animation functions
+        function animateWater() {
+            if (waterMesh && materials.water) {
+                materials.water.uniforms.time.value = time;
+                
+                // Animate water level
+                currentWaterLevel += waterLevelChangeSpeed * waterLevelDirection;
+                if (currentWaterLevel >= maxWaterLevel || currentWaterLevel <= minWaterLevel) {
+                    waterLevelDirection *= -1;
+                }
+                waterMesh.position.y = currentWaterLevel;
+                
+                // Update water color based on level
+                const levelRatio = (currentWaterLevel - minWaterLevel) / (maxWaterLevel - minWaterLevel);
+                const color = new THREE.Color().lerpColors(
+                    new THREE.Color(0x004466),
+                    new THREE.Color(0x0088cc),
+                    levelRatio
+                );
+                materials.water.uniforms.waterColor.value = color;
+            }
+        }
+        
+        function animateSensors() {
+            radarSensors.forEach((sensor, index) => {
+                // Rotate antenna
+                sensor.antenna.rotation.y += 0.02;
+                
+                // Scanning laser rotation
+                sensor.laser.rotation.y += 0.05;
+                sensor.laser.material.opacity = 0.2 + Math.sin(time * 3 + sensor.pulsePhase) * 0.1;
+                
+                // LED pulsing
+                const pulse = Math.sin(time * 4 + sensor.pulsePhase);
+                sensor.led.material.emissiveIntensity = 0.5 + pulse * 0.5;
+                sensor.led.scale.setScalar(1 + pulse * 0.1);
+                
+                // Head slight movement
+                sensor.head.rotation.y = Math.sin(time + index) * 0.1;
+                
+                // Data beam animation
+                if (Math.random() < 0.005 && !sensor.beamActive) {
+                    sensor.beamActive = true;
+                    sensor.beamStartTime = time;
+                }
+                
+                if (sensor.beamActive) {
+                    const elapsed = time - sensor.beamStartTime;
+                    const progress = elapsed / 2;
+                    
+                    if (progress < 1) {
+                        sensor.beam.scale.y = progress;
+                        sensor.beam.position.y = 35 + progress * 15;
+                        sensor.beam.material.opacity = (1 - progress) * 0.5;
+                    } else {
+                        sensor.beamActive = false;
+                        sensor.beam.material.opacity = 0;
+                    }
+                }
+            });
+        }
+        
+        function animateBarges() {
+            // Spawn new barges
+            if (Date.now() - lastBargeSpawnTime > bargeSpawnInterval) {
+                createEnhancedBarge();
+                lastBargeSpawnTime = Date.now();
+            }
+            
+            // Update existing barges
+            for (let i = barges.length - 1; i >= 0; i--) {
+                const barge = barges[i];
+                
+                // Move forward
+                barge.position.x += barge.userData.speed;
+                
+                // Bobbing motion
+                barge.position.y = currentWaterLevel - barge.userData.sinkDepth + 
+                    Math.sin(time * 2 + barge.userData.wobbleOffset) * 0.2;
+                
+                // Slight rolling
+                barge.rotation.z = Math.sin(time * 1.5 + barge.userData.wobbleOffset) * 0.02;
+                barge.rotation.x = Math.sin(time * 1.8 + barge.userData.wobbleOffset) * 0.01;
+                
+                // Update wake
+                if (barge.userData.wake) {
+                    barge.userData.wake.material.opacity = 0.3 * (1 + Math.sin(time * 5) * 0.3);
+                }
+                
+                // Remove if out of bounds
+                if (barge.position.x > 250) {
+                    scene.remove(barge);
+                    barges.splice(i, 1);
+                }
+            }
+            
+            // Update vessel count
+            document.getElementById('vessel-count').textContent = barges.length;
+        }
+        
+        function animateEnvironment() {
+            // Animate clouds
+            clouds.forEach((cloud, index) => {
+                cloud.position.x += 0.1;
+                if (cloud.position.x > 400) {
+                    cloud.position.x = -400;
+                }
+                cloud.material.opacity = 0.3 + Math.sin(time * 0.5 + index) * 0.1;
+            });
+            
+            // Animate birds
+            birds.forEach(bird => {
+                bird.position.add(bird.userData.velocity);
+                bird.position.y = bird.userData.baseY + Math.sin(time * 3) * 2;
+                
+                // Boundary check
+                if (Math.abs(bird.position.x) > 200 || Math.abs(bird.position.z) > 200) {
+                    bird.userData.velocity.multiplyScalar(-1);
+                }
+                
+                // Face direction of movement
+                bird.lookAt(
+                    bird.position.x + bird.userData.velocity.x * 10,
+                    bird.position.y,
+                    bird.position.z + bird.userData.velocity.z * 10
+                );
+            });
+            
+            // Animate trees swaying
+            scene.traverse(child => {
+                if (child.name === 'tree') {
+                    const sway = Math.sin(time * child.userData.swaySpeed + child.userData.swayOffset) * 0.02;
+                    child.rotation.z = child.userData.baseRotation + sway;
+                }
+            });
+        }
+        
+        function updateUI() {
+            // Update water level
+            const levelPercentage = ((currentWaterLevel - minWaterLevel) / (maxWaterLevel - minWaterLevel)) * 100;
+            document.getElementById('water-level-display').textContent = currentWaterLevel.toFixed(2);
+            document.getElementById('water-level-bar').style.width = levelPercentage + '%';
+            
+            // Update status
+            let status = 'Normal';
+            let statusColor = '#00ff00';
+            if (currentWaterLevel > 1.2) {
+                status = 'High';
+                statusColor = '#ffaa00';
+                document.getElementById('water-level-bar').classList.add('warning-level');
+            } else if (currentWaterLevel > 1.4) {
+                status = 'Critical';
+                statusColor = '#ff0000';
+            } else {
+                document.getElementById('water-level-bar').classList.remove('warning-level');
+            }
+            document.getElementById('status-display').textContent = status;
+            document.getElementById('status-display').style.color = statusColor;
+            
+            // Update time
+            dayTime += 0.001;
+            if (dayTime >= 24) dayTime = 0;
+            const hours = Math.floor(dayTime);
+            const minutes = Math.floor((dayTime - hours) * 60);
+            document.getElementById('time-display').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+        
+        // Control functions
+        window.toggleAnimation = function() {
+            isPaused = !isPaused;
+            const btn = event.target.closest('button');
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.setAttribute('data-lucide', isPaused ? 'play' : 'pause');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+            btn.innerHTML = `<i data-lucide="${isPaused ? 'play' : 'pause'}" style="width: 16px; height: 16px;"></i> ${isPaused ? 'Play' : 'Pause'}`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        };
+        
+        window.changeView = function(view) {
+            const positions = {
+                overview: { x: 100, y: 80, z: 150 },
+                bridge: { x: 30, y: 20, z: 50 },
+                sensor: { x: -100, y: 40, z: 60 }
+            };
+            
+            if (positions[view]) {
+                camera.position.set(positions[view].x, positions[view].y, positions[view].z);
+                camera.lookAt(0, 0, 0);
+            }
+        };
+        
+        window.resetCamera = function() {
+            camera.position.set(50, 30, 80);
+            camera.lookAt(0, 0, 0);
+            controls.reset();
+        };
+        
+        window.setWeather = function(weather) {
+            currentWeather = weather;
+            
+            // Update button states
+            document.querySelectorAll('.weather-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Apply weather effects
+            switch(weather) {
+                case 'clear':
+                    scene.fog.density = 0.002;
+                    if (rain) rain.visible = false;
+                    sunLight.intensity = 1.2;
+                    ambientLight.intensity = 0.4;
+                    break;
+                case 'cloudy':
+                    scene.fog.density = 0.005;
+                    if (rain) rain.visible = false;
+                    sunLight.intensity = 0.6;
+                    ambientLight.intensity = 0.3;
+                    break;
+                case 'rain':
+                    scene.fog.density = 0.008;
+                    if (!rain) createRainEffect();
+                    if (rain) rain.visible = true;
+                    sunLight.intensity = 0.3;
+                    ambientLight.intensity = 0.2;
+                    break;
+                case 'night':
+                    scene.fog.density = 0.003;
+                    if (rain) rain.visible = false;
+                    sunLight.intensity = 0.1;
+                    ambientLight.intensity = 0.1;
+                    // Add moon light
+                    break;
+            }
+        };
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (!isPaused) {
+                const delta = clock.getDelta();
+                time += delta;
+                
+                // Update animations
+                animateWater();
+                animateSensors();
+                animateBarges();
+                animateEnvironment();
+                
+                if (currentWeather === 'rain') {
+                    updateRain();
+                }
+                
+                updateUI();
+            }
+            
+            // Update controls
+            controls.update();
+            
+            // Render scene
+            renderer.render(scene, camera);
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
