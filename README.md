@@ -37,7 +37,7 @@ An interactive company overview mindmap showcasing Supertype's AI & RPA solution
 │   ├── bpkri.png                       # BPK RI case study  
 │   ├── bankindonesia.png               # Bank Indonesia case study
 │   ├── image2.png                      # Enterprise clients overview
-│   ├── ds_250811.pdf                   # IDX automated reports
+│   ├── ds_250730_compressed.pdf        # IDX automated reports
 │   └── image (2-12).webp              # Client logos carousel
 ```
 
