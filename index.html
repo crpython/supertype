@@ -360,6 +360,18 @@
         </div>
     </div>
 
+    <!-- Sectors API Modal -->
+    <div id="sectorsApiModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeSectorsApiModal()">&times;</span>
+            <h2 class="modal-title">Sectors API Documentation</h2>
+            <iframe src="https://sectors.app/api" 
+                    style="width: 90vw; height: 80vh; border: none; border-radius: 0.5rem;"
+                    title="Sectors API Documentation">
+            </iframe>
+        </div>
+    </div>
+
 
 
     <script>
@@ -385,9 +397,10 @@
                         { id: 'success-7', text: 'OSINT Listening Tools (Government)' }
                     ]
                 },
-                { id: 'inhouse', text: 'In-House Project', collapsed: true, children: [
-                        { id: 'sectors-financial', text: 'Sectors Financial' },
-                        { id: 'sectors-insiders', text: 'Sectors Insiders' }
+                { id: 'inhouse', text: 'Sectors Financial Data Suite', collapsed: true, children: [
+                        { id: 'sectors-financial', text: 'Sectors Public' },
+                        { id: 'sectors-insiders', text: 'Sectors Insider' },
+                        { id: 'sectors-api', text: 'Sectors API' }
                     ]
                 },
                 { id: 'innovation', text: 'Powering Industry Innovation', collapsed: true, children: [
@@ -773,10 +786,11 @@
                         'challenge': 'alert-triangle',
                         'partner': 'handshake',
                         
-                        // In-House Project section
+                        // Sectors Financial Data Suite section
                         'inhouse': 'home',
                         'sectors-financial': 'dollar-sign',
                         'sectors-insiders': 'users',
+                        'sectors-api': 'code',
                         
                         // Challenge nodes
                         'challenge-1': 'clock',
@@ -953,6 +967,11 @@
                         return;
                     }
                     
+                    if (nodeId === 'sectors-api') {
+                        openSectorsApiModal();
+                        return;
+                    }
+                    
                     this.toggleNode(nodeId);
                 });
             }
@@ -1111,6 +1130,16 @@
             document.body.style.overflow = 'auto'; // Restore scrolling
         }
 
+        function openSectorsApiModal() {
+            document.getElementById('sectorsApiModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeSectorsApiModal() {
+            document.getElementById('sectorsApiModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
 
         // Close modal when clicking outside the modal content
         window.addEventListener('click', (e) => {
@@ -1123,6 +1152,7 @@
             const bankIndonesiaModal = document.getElementById('bankIndonesiaModal');
             const bpkRiModal = document.getElementById('bpkRiModal');
             const osintGovernmentModal = document.getElementById('osintGovernmentModal');
+            const sectorsApiModal = document.getElementById('sectorsApiModal');
             
             if (e.target === clientModal) {
                 closeClientModal();
@@ -1151,6 +1181,9 @@
             if (e.target === osintGovernmentModal) {
                 closeOsintGovernmentModal();
             }
+            if (e.target === sectorsApiModal) {
+                closeSectorsApiModal();
+            }
         });
 
         // Close modal with Escape key
@@ -1165,6 +1198,7 @@
                 closeBankIndonesiaModal();
                 closeBpkRiModal();
                 closeOsintGovernmentModal();
+                closeSectorsApiModal();
             }
         });
         
